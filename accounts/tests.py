@@ -84,7 +84,14 @@ class UserSerializerTests(TestCase):
         )
 
     def test_user_serializer_validation(self):
-        serializer = UserSerializer(data=self.user_data)
+        # Use fresh data to avoid conflicts
+        fresh_data = {
+            'username': 'freshuser',
+            'email': 'fresh@example.com',
+            'password': 'freshpass123',
+            'role': 'SELLER'
+        }
+        serializer = UserSerializer(data=fresh_data)
         if not serializer.is_valid():
             print("Serializer errors:", serializer.errors)
         self.assertTrue(serializer.is_valid())

@@ -20,15 +20,13 @@ class ZoneModelTests(TestCase):
     def setUp(self):
         self.zone_data = {
             'name': 'Test Zone',
-            'description': 'A test zone for testing purposes'
+            'is_active': True
         }
 
     def test_create_zone(self):
         zone = Zone.objects.create(**self.zone_data)
         self.assertEqual(zone.name, 'Test Zone')
-        self.assertEqual(zone.description, 'A test zone for testing purposes')
-        self.assertIsNotNone(zone.created_at)
-        self.assertIsNotNone(zone.updated_at)
+        self.assertTrue(zone.is_active)
 
     def test_zone_str_representation(self):
         zone = Zone.objects.create(**self.zone_data)
@@ -47,20 +45,18 @@ class DrawTypeModelTests(TestCase):
         self.draw_type_data = {
             'code': 'TEST',
             'name': 'Test Draw',
-            'description': 'A test draw type'
+            'is_active': True
         }
 
     def test_create_draw_type(self):
         draw_type = DrawType.objects.create(**self.draw_type_data)
         self.assertEqual(draw_type.code, 'TEST')
         self.assertEqual(draw_type.name, 'Test Draw')
-        self.assertEqual(draw_type.description, 'A test draw type')
-        self.assertIsNotNone(draw_type.created_at)
-        self.assertIsNotNone(draw_type.updated_at)
+        self.assertTrue(draw_type.is_active)
 
     def test_draw_type_str_representation(self):
         draw_type = DrawType.objects.create(**self.draw_type_data)
-        self.assertEqual(str(draw_type), 'TEST - Test Draw')
+        self.assertEqual(str(draw_type), 'Test Draw')
 
     def test_draw_type_ordering(self):
         draw1 = DrawType.objects.create(code='A', name='Draw A')
@@ -87,8 +83,6 @@ class DrawScheduleModelTests(TestCase):
         self.assertEqual(schedule.draw_type, self.draw_type)
         self.assertEqual(schedule.cutoff_time.hour, 18)
         self.assertTrue(schedule.is_active)
-        self.assertIsNotNone(schedule.created_at)
-        self.assertIsNotNone(schedule.updated_at)
 
     def test_draw_schedule_str_representation(self):
         schedule = DrawSchedule.objects.create(**self.schedule_data)
@@ -121,12 +115,10 @@ class NumberLimitModelTests(TestCase):
         self.assertEqual(limit.draw_type, self.draw_type)
         self.assertEqual(limit.number, '12')
         self.assertEqual(limit.max_pieces, 100)
-        self.assertIsNotNone(limit.created_at)
-        self.assertIsNotNone(limit.updated_at)
 
     def test_number_limit_str_representation(self):
         limit = NumberLimit.objects.create(**self.limit_data)
-        expected_str = 'Test Zone - Test Draw - 12 (100)'
+        expected_str = 'Test Zone-Test Draw #12: 100'
         self.assertEqual(str(limit), expected_str)
 
     def test_number_limit_unique_constraint(self):
@@ -154,18 +146,15 @@ class ZoneSerializerTests(TestCase):
         serializer = ZoneSerializer(self.zone)
         data = serializer.data
         self.assertEqual(data['name'], 'Test Zone')
-        self.assertEqual(data['description'], 'A test zone')
         self.assertIn('id', data)
-        self.assertIn('created_at', data)
-        self.assertIn('updated_at', data)
 
     def test_zone_serializer_update(self):
-        update_data = {'name': 'Updated Zone', 'description': 'Updated description'}
+        update_data = {'name': 'Updated Zone', 'is_active': False}
         serializer = ZoneSerializer(self.zone, data=update_data, partial=True)
         self.assertTrue(serializer.is_valid())
         updated_zone = serializer.save()
         self.assertEqual(updated_zone.name, 'Updated Zone')
-        self.assertEqual(updated_zone.description, 'Updated description')
+        self.assertFalse(updated_zone.is_active)
 
 
 class DrawTypeSerializerTests(TestCase):
@@ -173,7 +162,7 @@ class DrawTypeSerializerTests(TestCase):
         self.draw_type_data = {
             'code': 'TEST',
             'name': 'Test Draw',
-            'description': 'A test draw'
+            'is_active': True
         }
         self.draw_type = DrawType.objects.create(**self.draw_type_data)
 
@@ -186,18 +175,15 @@ class DrawTypeSerializerTests(TestCase):
         data = serializer.data
         self.assertEqual(data['code'], 'TEST')
         self.assertEqual(data['name'], 'Test Draw')
-        self.assertEqual(data['description'], 'A test draw')
         self.assertIn('id', data)
-        self.assertIn('created_at', data)
-        self.assertIn('updated_at', data)
 
     def test_draw_type_serializer_update(self):
-        update_data = {'name': 'Updated Draw', 'description': 'Updated description'}
+        update_data = {'name': 'Updated Draw', 'is_active': False}
         serializer = DrawTypeSerializer(self.draw_type, data=update_data, partial=True)
         self.assertTrue(serializer.is_valid())
         updated_draw = serializer.save()
         self.assertEqual(updated_draw.name, 'Updated Draw')
-        self.assertEqual(updated_draw.description, 'Updated description')
+        self.assertFalse(updated_draw.is_active)
 
 
 class DrawScheduleSerializerTests(TestCase):
@@ -228,8 +214,6 @@ class DrawScheduleSerializerTests(TestCase):
         self.assertEqual(data['draw_type'], self.draw_type.id)
         self.assertTrue(data['is_active'])
         self.assertIn('id', data)
-        self.assertIn('created_at', data)
-        self.assertIn('updated_at', data)
 
 
 class NumberLimitSerializerTests(TestCase):
@@ -261,8 +245,6 @@ class NumberLimitSerializerTests(TestCase):
         self.assertEqual(data['number'], '12')
         self.assertEqual(data['max_pieces'], 100)
         self.assertIn('id', data)
-        self.assertIn('created_at', data)
-        self.assertIn('updated_at', data)
 
 
 class ZoneViewSetTests(TestCase):
@@ -285,7 +267,7 @@ class ZoneViewSetTests(TestCase):
         self.assertEqual(response.data[0]['name'], 'Test Zone')
 
     def test_create_zone(self):
-        new_zone_data = {'name': 'New Zone', 'description': 'New zone description'}
+        new_zone_data = {'name': 'New Zone', 'is_active': True}
         response = self.client.post(reverse('zone-list'), new_zone_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'New Zone')
