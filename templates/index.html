@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Emisión de Tickets</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            padding: 12px 16px;
+            background: #0f172a;
+            color: #fff;
+        }
+
+        main {
+            padding: 16px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 900px) {
+            .grid {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        select,
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f8fafc;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn.primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .btn.danger {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        @media (min-width: 600px) {
+            .actions {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .totals {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+
+        .login {
+            max-width: 420px;
+            margin: 48px auto;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toolbar .right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="toolbar">
+            <h2>Emisión de Tickets</h2>
+            <div class="right">
+                <span id="userInfo"></span>
+                <button class="btn" id="loginBtn">Login</button>
+                <button class="btn" id="logoutBtn" style="display:none;">Salir</button>
+            </div>
+        </div>
+    </header>
+    <main class="grid" id="app" style="display:none;">
+        <section class="card">
+            <div class="row">
+                <div>
+                    <label for="zone">Zona</label>
+                    <select id="zone"></select>
+                </div>
+                <div>
+                    <label for="draw">Sorteo</label>
+                    <select id="draw"></select>
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="number">Número (00-99)</label>
+                    <input id="number" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+                </div>
+                <div>
+                    <label for="pieces">Pedazos</label>
+                    <input id="pieces" type="number" min="1" value="1">
+                </div>
+            </div>
+
+            <div class="keypad" id="keypad"></div>
+
+            <div class="actions">
+                <button class="btn" id="add">Agregar número</button>
+                <button class="btn" id="clear">Limpiar</button>
+                <button class="btn danger" id="empty">Vaciar Ticket</button>
+                <button class="btn" id="preview">Imprimir/PDF</button>
+                <button class="btn primary" id="emit">Emitir Ticket</button>
+            </div>
+        </section>
+        <section class="card">
+            <h3>Ticket previo</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Pedazos</th>
+                    </tr>
+                </thead>
+                <tbody id="items"></tbody>
+            </table>
+            <div class="totals"><span>Total pedazos</span><span id="total">0</span></div>
+        </section>
+        <section class="card" id="reports">
+            <h3>Reportes</h3>
+            <div class="row">
+                <div>
+                    <label>Desde</label>
+                    <input type="date" id="start" />
+                </div>
+                <div>
+                    <label>Hasta</label>
+                    <input type="date" id="end" />
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label>Zonas (multi)</label>
+                    <select id="zonesFilter" multiple></select>
+                </div>
+                <div>
+                    <label>Sorteos (multi)</label>
+                    <select id="drawsFilter" multiple></select>
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label>Vendedores (multi)</label>
+                    <select id="usersFilter" multiple></select>
+                </div>
+                <div>
+                    <label>Agrupar por</label>
+                    <select id="group_by">
+                        <option value="zone">Zona</option>
+                        <option value="draw_type">Sorteo</option>
+                        <option value="user">Vendedor</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px; align-items:end;">
+                    <button class="btn" id="runReport">Generar</button>
+                    <button class="btn" id="exportCsv">CSV</button>
+                    <button class="btn" id="exportXlsx">Excel</button>
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label>Tamaño de página</label>
+                    <input id="pageSize" type="number" min="1" value="50" />
+                </div>
+                <div>
+                    <label>Totales por día</label>
+                    <select id="daily">
+                        <option value="0">No</option>
+                        <option value="1">Sí</option>
+                    </select>
+                </div>
+            </div>
+            <div id="reportTable"></div>
+            <div id="reportChart"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                <button class="btn" id="prevPage">Anterior</button>
+                <button class="btn" id="nextPage">Siguiente</button>
+                <span id="pageInfo"></span>
+            </div>
+        </section>
+    </main>
+    <section class="card login" id="loginPanel" style="display:none;">
+        <h3>Iniciar sesión</h3>
+        <label>Usuario</label>
+        <input id="u" type="text" autocomplete="username">
+        <label>Contraseña</label>
+        <input id="p" type="password" autocomplete="current-password">
+        <div style="margin-top:10px;display:flex;gap:8px;">
+            <button class="btn primary" id="doLogin">Entrar</button>
+            <button class="btn" id="cancelLogin">Cancelar</button>
+        </div>
+    </section>
+
+    <script>
+        const numberInput = document.getElementById('number');
+        const piecesInput = document.getElementById('pieces');
+        const itemsBody = document.getElementById('items');
+        const totalEl = document.getElementById('total');
+        const keypad = document.getElementById('keypad');
+        const zonesSel = document.getElementById('zone');
+        const drawSel = document.getElementById('draw');
+        const zonesFilter = document.getElementById('zonesFilter');
+        const drawsFilter = document.getElementById('drawsFilter');
+        const usersFilter = document.getElementById('usersFilter');
+        const state = { items: {}, report: null };
+        const app = document.getElementById('app');
+        const loginPanel = document.getElementById('loginPanel');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+
+        function renderKeypad() {
+            const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '←', 'OK'];
+            keypad.innerHTML = '';
+            keys.forEach(k => {
+                const b = document.createElement('button');
+                b.className = 'btn';
+                b.textContent = k;
+                b.onclick = () => {
+                    if (k === '←') numberInput.value = numberInput.value.slice(0, -1);
+                    else if (k === 'OK') piecesInput.focus();
+                    else if (numberInput.value.length < 2) numberInput.value += k;
+                };
+                keypad.appendChild(b);
+            });
+        }
+
+        function renderItems() {
+            itemsBody.innerHTML = Object.entries(state.items).map(([n, p]) => `<tr><td>${n}</td><td>${p}</td></tr>`).join('');
+            const total = Object.values(state.items).reduce((a, b) => a + b, 0);
+            totalEl.textContent = total;
+        }
+
+        function addItem() {
+            const n = numberInput.value.padStart(2, '0');
+            const p = parseInt(piecesInput.value || '0');
+            if (!/^\d{2}$/.test(n) || p <= 0) return;
+            state.items[n] = (state.items[n] || 0) + p;
+            numberInput.value = '';
+            piecesInput.value = 1;
+            renderItems();
+        }
+
+        async function loadCatalog() {
+            const [zones, draws] = await Promise.all([
+                fetch('/api/catalog/zones/').then(r => r.json()),
+                fetch('/api/catalog/draw-types/').then(r => r.json())
+            ]);
+            zonesSel.innerHTML = zones.map(z => `<option value="${z.id}">${z.name}</option>`).join('');
+            drawSel.innerHTML = draws.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            zonesFilter.innerHTML = zones.map(z => `<option value="${z.id}">${z.name}</option>`).join('');
+            drawsFilter.innerHTML = draws.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            try {
+                const meRes = await fetch('/api/auth/me/', { headers: authHeaders() });
+                if (meRes.ok) {
+                    const me = await meRes.json();
+                    if (me.role === 'ADMIN') {
+                        const users = await fetch('/api/auth/users/').then(r => r.json());
+                        usersFilter.innerHTML = users.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+                    }
+                }
+            } catch (e) { }
+        }
+
+        async function emitTicket() {
+            const zone = zonesSel.value; const draw = drawSel.value;
+            const items = Object.entries(state.items).map(([number, pieces]) => ({ number, pieces }));
+            if (!items.length) return;
+            const res = await api('/api/sales/tickets/', { method: 'POST', body: { zone, draw_type: draw, items } });
+            if (res.ok) {
+                const ticket = await res.json();
+                window.open(`/api/sales/tickets/${ticket.id}/pdf/`, '_blank');
+                state.items = {}; renderItems();
+            } else {
+                const data = await res.json().catch(() => ({ detail: 'Error' }));
+                alert(data.detail || JSON.stringify(data));
+            }
+        }
+
+        async function previewPDF() {
+            const zone = zonesSel.value; const draw = drawSel.value;
+            const items = Object.entries(state.items).map(([number, pieces]) => ({ number, pieces }));
+            if (!items.length) return alert('Agrega al menos un número');
+            const res = await api('/api/sales/tickets/preview/', { method: 'POST', body: { zone, draw_type: draw, items } });
+            if (!res.ok) return alert('Error generando PDF');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        function getToken() { return localStorage.getItem('token') || ''; }
+        function setToken(t) { localStorage.setItem('token', t); }
+        function clearToken() { localStorage.removeItem('token'); }
+        function authHeaders() { const t = getToken(); return t ? { 'Authorization': `Bearer ${t}` } : {}; }
+        async function api(url, { method = 'GET', body = null } = {}) {
+            const headers = { 'Content-Type': 'application/json', ...authHeaders() };
+            const opts = { method, headers };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(url, opts);
+            return res;
+        }
+
+        async function doLogin() {
+            const username = document.getElementById('u').value.trim();
+            const password = document.getElementById('p').value;
+            const res = await fetch('/api/auth/token/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+            if (!res.ok) { alert('Credenciales inválidas'); return; }
+            const data = await res.json();
+            setToken(data.access);
+            userInfo.textContent = username;
+            loginPanel.style.display = 'none';
+            app.style.display = '';
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = '';
+        }
+
+        function showLogin() { loginPanel.style.display = ''; app.style.display = 'none'; }
+        function logout() { clearToken(); userInfo.textContent = ''; app.style.display = 'none'; loginPanel.style.display = 'none'; loginBtn.style.display = ''; logoutBtn.style.display = 'none'; }
+
+        document.getElementById('add').onclick = addItem;
+        document.getElementById('clear').onclick = () => { numberInput.value = ''; piecesInput.value = 1; };
+        document.getElementById('empty').onclick = () => { state.items = {}; renderItems(); };
+        document.getElementById('preview').onclick = previewPDF;
+        document.getElementById('emit').onclick = emitTicket;
+        document.getElementById('runReport').onclick = loadReport;
+        document.getElementById('exportCsv').onclick = () => exportReport('csv');
+        document.getElementById('exportXlsx').onclick = () => exportReport('xlsx');
+        loginBtn.onclick = () => { showLogin(); };
+        logoutBtn.onclick = () => { logout(); };
+        document.getElementById('doLogin').onclick = doLogin;
+        document.getElementById('cancelLogin').onclick = () => { loginPanel.style.display = 'none'; if (getToken()) app.style.display = ''; };
+
+        // Estado inicial
+        if (getToken()) { app.style.display = ''; loginBtn.style.display = 'none'; logoutBtn.style.display = ''; }
+        else { app.style.display = 'none'; loginBtn.style.display = ''; }
+        renderKeypad(); renderItems(); loadCatalog();
+
+        // Reportes
+        function buildReportQuery() {
+            const params = new URLSearchParams();
+            const s = document.getElementById('start').value; if (s) params.set('start', s);
+            const e = document.getElementById('end').value; if (e) params.set('end', e);
+            const gb = document.getElementById('group_by').value; if (gb) params.set('group_by', gb);
+            const z = Array.from(zonesFilter.selectedOptions).map(o => o.value).join(','); if (z) params.set('zone', z);
+            const d = Array.from(drawsFilter.selectedOptions).map(o => o.value).join(','); if (d) params.set('draw_type', d);
+            const u = Array.from(usersFilter.selectedOptions).map(o => o.value).join(','); if (u) params.set('user', u);
+            const ps = parseInt(document.getElementById('pageSize').value || '50'); if (ps) params.set('page_size', ps);
+            const daily = document.getElementById('daily').value; if (daily === '1') params.set('daily', '1');
+            const page = state.report?.pagination?.page || 1; params.set('page', page);
+            return params.toString();
+        }
+
+        async function loadReport() {
+            const q = buildReportQuery();
+            const res = await api('/api/sales/tickets/reports/summary/?' + q, { method: 'GET' });
+            if (!res.ok) { alert('Error en reporte'); return; }
+            const data = await res.json();
+            state.report = data;
+            renderReport();
+        }
+
+        function renderReport() {
+            const container = document.getElementById('reportTable');
+            const chart = document.getElementById('reportChart');
+            if (!state.report) { container.innerHTML = ''; chart.innerHTML = ''; return; }
+            const rows = state.report.summary.map(r => `<tr><td>${r.group || ''}</td><td>${r.total_tickets}</td><td>${r.total_pieces}</td></tr>`).join('');
+            container.innerHTML = `<table><thead><tr><th>Grupo</th><th>Tickets</th><th>Pedazos</th></tr></thead><tbody>${rows}</tbody></table>`;
+            const max = Math.max(1, ...state.report.summary.map(r => r.total_pieces));
+            chart.innerHTML = state.report.summary.map(r => {
+                const w = Math.round((r.total_pieces / max) * 100);
+                return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><div style="width:140px;">${r.group || ''}</div><div style="background:#e5e7eb;border-radius:6px;width:100%;height:16px;"><div style="background:#2563eb;width:${w}%;height:16px;border-radius:6px;"></div></div><div style="width:60px;text-align:right;">${r.total_pieces}</div></div>`;
+            }).join('');
+            const pi = state.report.pagination; document.getElementById('pageInfo').textContent = `Página ${pi.page} de ${pi.total_pages} ( ${pi.total_items} ítems )`;
+            document.getElementById('prevPage').disabled = pi.page <= 1;
+            document.getElementById('nextPage').disabled = pi.page >= pi.total_pages;
+            if (state.report.daily) {
+                const dailyRows = state.report.daily.map(r => `<tr><td>${r.date}</td><td>${r.total_tickets}</td><td>${r.total_pieces}</td></tr>`).join('');
+                container.innerHTML += `<h4>Totales diarios</h4><table><thead><tr><th>Fecha</th><th>Tickets</th><th>Pedazos</th></tr></thead><tbody>${dailyRows}</tbody></table>`;
+            }
+        }
+
+        document.getElementById('prevPage').onclick = () => { if (!state.report) return; state.report.pagination.page = Math.max(1, state.report.pagination.page - 1); loadReport(); };
+        document.getElementById('nextPage').onclick = () => { if (!state.report) return; const pi = state.report.pagination; state.report.pagination.page = Math.min(pi.total_pages, pi.page + 1); loadReport(); };
+
+        async function exportReport(fmt) {
+            const q = buildReportQuery() + `&format=${fmt}`;
+            const res = await api('/api/sales/tickets/reports/export/?' + q, { method: 'GET' });
+            if (!res.ok) { alert('Error exportando'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `reporte.${fmt}`; a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+
+</body>
+
+</html>
