@@ -4,9 +4,10 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from catalog.models import DrawType, Zone
+
 from .models import User
 from .serializers import UserSerializer
-from catalog.models import Zone, DrawType
 
 
 class UserModelTests(TestCase):
