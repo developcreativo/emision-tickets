@@ -131,7 +131,7 @@ class UserViewSetTests(TestCase):
         self.test_user = User.objects.create_user(
             username='testuser',
             password='testpass123',
-            role='VENDEDOR'
+            role='SELLER'
         )
 
     def get_auth_headers(self, user):
@@ -157,7 +157,7 @@ class UserViewSetTests(TestCase):
             'username': 'newuser',
             'email': 'new@example.com',
             'password': 'newpass123',
-            'role': 'VENDEDOR'
+            'role': 'SELLER'
         }
         
         # Admin can create
