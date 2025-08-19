@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  web:
+    build: .
+    command: bash -lc "python scripts/wait_for_db.py && python manage.py migrate && python manage.py seed_catalog && python manage.py create_default_admin && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      - ./:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret}
+      DEBUG: ${DEBUG:-1}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      DB_NAME: ${DB_NAME:-tickets}
+      DB_USER: ${DB_USER:-tickets}
+      DB_PASSWORD: ${DB_PASSWORD:-tickets}
+      DB_HOST: db
+      DB_PORT: 5432
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tickets}
+      POSTGRES_USER: ${DB_USER:-tickets}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tickets}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+
