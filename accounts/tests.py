@@ -84,6 +84,8 @@ class UserSerializerTests(TestCase):
 
     def test_user_serializer_validation(self):
         serializer = UserSerializer(data=self.user_data)
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)
         self.assertTrue(serializer.is_valid())
 
     def test_user_serializer_serialization(self):
