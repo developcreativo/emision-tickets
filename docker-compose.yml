@@ -1,8 +1,9 @@
-version: '3.9'
-
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        REQUIREMENTS_FILE: ${REQUIREMENTS_FILE:-requirements.txt}
     command: bash -lc "python scripts/wait_for_db.py && python manage.py migrate && python manage.py seed_catalog && python manage.py create_default_admin && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - ./:/app
