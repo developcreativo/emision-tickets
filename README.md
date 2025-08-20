@@ -328,6 +328,46 @@ jobs:
 - ¿Cómo creo datos mínimos?  
   Usa los endpoints `zones/`, `draw-types/` y luego `draw-schedules/` para horarios.
 
+## 🗺️ Roadmap
+
+### Fase 1: Funcionalidades Core (Q2 2024) ✅
+- ✅ Sistema de autenticación JWT
+- ✅ Gestión de catálogos (zonas, tipos de sorteo, horarios, límites)
+- ✅ Emisión de tickets con validaciones de negocio
+- ✅ Sistema de permisos por roles
+- ✅ Tests unitarios y de integración
+- ✅ API REST completa
+
+### Fase 2: Mejoras y Optimizaciones (Q3 2024) 🚧
+- 🔄 Dashboard de administración mejorado
+- 🔄 Cache Redis para reportes frecuentes
+- 🔄 Validaciones de negocio más robustas
+- 🔄 Sistema de auditoría y logs
+- 🔄 API rate limiting
+- 🔄 Tests de rendimiento y carga
+- 🔄 Documentación de API con Swagger/OpenAPI
+- 🔄 Monitoreo y métricas con Prometheus
+- 🔄 **Frontend Vue.js 3 + Composition API**
+- 🔄 **Dashboard responsive para administradores**
+- 🔄 **Interfaz de vendedores para emisión de tickets**
+- 🔄 **Sistema de autenticación frontend**
+- 🔄 **Gestión de catálogos con UI intuitiva**
+
+### Fase 3: Escalabilidad y Nuevas Funcionalidades (Q4 2024) 📋
+- 📋 Sistema de notificaciones en tiempo real
+- 📋 Integración con sistemas externos (pagos, SMS)
+- 📋 App móvil para vendedores
+- 📋 Análisis avanzado con machine learning
+- 📋 Sistema de backup automático
+- 📋 Microservicios y contenedores
+- 📋 CI/CD pipeline completo
+- 📋 Tests de seguridad automatizados
+- 📋 **PWA (Progressive Web App) para vendedores**
+- 📋 **Componentes Vue reutilizables y librería UI**
+- 📋 **Tests E2E con Cypress/Playwright**
+- 📋 **Optimización de rendimiento frontend**
+- 📋 **Internacionalización (i18n) multiidioma**
+
 ## 🤝 Contribución
 - Agrega tests para toda nueva funcionalidad.
 - Mantén cobertura ≥80%.
