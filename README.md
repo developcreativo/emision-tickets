@@ -247,6 +247,10 @@ Suite que valida modelos, serializers, viewsets, permisos y flujos de integraci�
 
 ## ⚡ Comandos rápidos
 - Iniciar app (Docker): `docker compose up -d --build`
+- Desarrollo fullstack: `./scripts/dev.sh`
+- Solo backend: `./scripts/dev.sh backend`
+- Solo frontend: `./scripts/dev.sh frontend`
+- Instalar dependencias: `./scripts/dev.sh install`
 - Migraciones: `python manage.py makemigrations && python manage.py migrate`
 - Tests rápidos: `python manage.py test -v 2`
 - Tests por módulo: `python manage.py test catalog.tests -v 2`
@@ -318,6 +322,73 @@ Si necesitas separar el frontend del repositorio actual:
 # Ejemplo: mover a ../tickets-admin-frontend
 ./scripts/move_frontend.sh ../tickets-admin-frontend
 ```
+
+### 🚀 Desarrollo Fullstack
+
+El backend ahora incluye Node.js y npm para facilitar el desarrollo fullstack:
+
+#### **Opción 1: Desde el Host (WSL2/Linux) - Recomendado**
+```bash
+# Desarrollo completo (backend + frontend)
+./scripts/dev.sh
+
+# Solo backend Django
+./scripts/dev.sh backend
+
+# Solo frontend Vue.js
+./scripts/dev.sh frontend
+
+# Instalar dependencias de ambos
+./scripts/dev.sh install
+
+# Construir frontend para producción
+./scripts/dev.sh build
+```
+
+#### **Opción 2: Desde dentro del Contenedor Docker**
+```bash
+# Desarrollo completo (backend + frontend)
+./scripts/dev-container.sh
+
+# Solo backend Django
+./scripts/dev-container.sh backend
+
+# Solo frontend Vue.js (si está montado)
+./scripts/dev-container.sh frontend
+
+# Instalar dependencias del frontend
+./scripts/dev-container.sh install
+```
+
+#### **Opción 3: Docker Compose para desarrollo**
+```bash
+# Iniciar todo el stack de desarrollo
+docker-compose -f docker-compose.dev.yml up --build
+
+# Servicios disponibles:
+# - Backend: http://localhost:8000
+# - Frontend: http://localhost:3000
+# - API Docs: http://localhost:8000/api/docs/
+# - Database: localhost:5433
+# - Redis: localhost:6379
+```
+
+#### **Opción 4: Desarrollo manual**
+```bash
+# Terminal 1: Backend
+python manage.py runserver 0.0.0.0:8000
+
+# Terminal 2: Frontend
+cd ../tickets-admin-frontend
+npm install
+npm run dev
+```
+
+### 📝 Notas importantes:
+
+- **Desde el Host**: Usa `./scripts/dev.sh` - accede a ambos directorios directamente
+- **Desde el Contenedor**: Usa `./scripts/dev-container.sh` - el frontend debe estar montado en `/frontend`
+- **Docker Compose**: Automáticamente monta el frontend y proporciona Node.js/npm
 
 ## 🧹 Calidad de Código
 ```bash
