@@ -352,6 +352,9 @@ jobs:
 - 🔄 **Interfaz de vendedores para emisión de tickets**
 - 🔄 **Sistema de autenticación frontend**
 - 🔄 **Gestión de catálogos con UI intuitiva**
+- 🔄 **Componentes Vue reutilizables y librería UI** *(adelantado de Fase 3)*
+- 🔄 **Tests E2E con Cypress/Playwright** *(adelantado de Fase 3)*
+- 🔄 **Optimización de rendimiento frontend** *(adelantado de Fase 3)*
 
 ### Fase 3: Escalabilidad y Nuevas Funcionalidades (Q4 2024) 📋
 - 📋 Sistema de notificaciones en tiempo real
@@ -363,10 +366,9 @@ jobs:
 - 📋 CI/CD pipeline completo
 - 📋 Tests de seguridad automatizados
 - 📋 **PWA (Progressive Web App) para vendedores**
-- 📋 **Componentes Vue reutilizables y librería UI**
-- 📋 **Tests E2E con Cypress/Playwright**
-- 📋 **Optimización de rendimiento frontend**
 - 📋 **Internacionalización (i18n) multiidioma**
+- 📋 **Integración continua frontend-backend**
+- 📋 **Sistema de deployment automático**
 
 ## 🤝 Contribución
 - Agrega tests para toda nueva funcionalidad.
