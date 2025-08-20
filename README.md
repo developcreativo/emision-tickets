@@ -281,6 +281,44 @@ pytest
 pytest --cov=accounts --cov=catalog --cov=sales --cov-report=term-missing
 ```
 
+## 🎨 Frontend (Repositorio Separado)
+
+El frontend del dashboard de administración está en un repositorio separado: **[tickets-admin-frontend](https://github.com/tu-usuario/tickets-admin-frontend)**
+
+### Características del Frontend
+- **Vue.js 3** con Composition API
+- **Tailwind CSS** para estilos
+- **Pinia** para gestión de estado
+- **Chart.js** para gráficos
+- **Diseño responsive** para móvil y desktop
+
+### Desarrollo del Frontend
+```bash
+# Clonar repositorio frontend
+git clone https://github.com/tu-usuario/tickets-admin-frontend.git
+cd tickets-admin-frontend
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en desarrollo
+npm run dev
+
+# Construir para producción
+npm run build
+```
+
+### Mover Frontend a Repositorio Separado
+Si necesitas separar el frontend del repositorio actual:
+
+```bash
+# Ejecutar script de separación
+./scripts/move_frontend.sh [ruta_destino]
+
+# Ejemplo: mover a ../tickets-admin-frontend
+./scripts/move_frontend.sh ../tickets-admin-frontend
+```
+
 ## 🧹 Calidad de Código
 ```bash
 flake8 accounts catalog sales --max-line-length=88
@@ -339,7 +377,6 @@ jobs:
 - ✅ API REST completa
 
 ### Fase 2: Mejoras y Optimizaciones (Q3 2024) 🚧
-- 🔄 Dashboard de administración mejorado
 - 🔄 Cache Redis para reportes frecuentes
 - 🔄 Validaciones de negocio más robustas
 - 🔄 Sistema de auditoría y logs
@@ -347,14 +384,14 @@ jobs:
 - 🔄 Tests de rendimiento y carga
 - 🔄 Documentación de API con Swagger/OpenAPI
 - 🔄 Monitoreo y métricas con Prometheus
-- 🔄 **Frontend Vue.js 3 + Composition API**
-- 🔄 **Dashboard responsive para administradores**
-- 🔄 **Interfaz de vendedores para emisión de tickets**
-- 🔄 **Sistema de autenticación frontend**
-- 🔄 **Gestión de catálogos con UI intuitiva**
-- 🔄 **Componentes Vue reutilizables y librería UI** *(adelantado de Fase 3)*
-- 🔄 **Tests E2E con Cypress/Playwright** *(adelantado de Fase 3)*
-- 🔄 **Optimización de rendimiento frontend** *(adelantado de Fase 3)*
+- 🔄 **Frontend Vue.js 3 + Composition API** *(repositorio separado)*
+- 🔄 **Dashboard responsive para administradores** *(repositorio separado)*
+- 🔄 **Interfaz de vendedores para emisión de tickets** *(repositorio separado)*
+- 🔄 **Sistema de autenticación frontend** *(repositorio separado)*
+- 🔄 **Gestión de catálogos con UI intuitiva** *(repositorio separado)*
+- 🔄 **Componentes Vue reutilizables y librería UI** *(repositorio separado)*
+- 🔄 **Tests E2E con Cypress/Playwright** *(repositorio separado)*
+- 🔄 **Optimización de rendimiento frontend** *(repositorio separado)*
 
 ### Fase 3: Escalabilidad y Nuevas Funcionalidades (Q4 2024) 📋
 - 📋 Sistema de notificaciones en tiempo real
@@ -365,8 +402,8 @@ jobs:
 - 📋 Microservicios y contenedores
 - 📋 CI/CD pipeline completo
 - 📋 Tests de seguridad automatizados
-- 📋 **PWA (Progressive Web App) para vendedores**
-- 📋 **Internacionalización (i18n) multiidioma**
+- 📋 **PWA (Progressive Web App) para vendedores** *(repositorio separado)*
+- 📋 **Internacionalización (i18n) multiidioma** *(repositorio separado)*
 - 📋 **Integración continua frontend-backend**
 - 📋 **Sistema de deployment automático**
 

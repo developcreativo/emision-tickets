@@ -24,5 +24,8 @@ htmlcov/
 node_modules/
 .env
 
+# Frontend - Repositorio separado
+frontend/
+
 
 
