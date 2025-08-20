@@ -68,6 +68,180 @@ python manage.py migrate
 - Autenticación JWT (SimpleJWT).
 - Permisos: escritura restringida a `ADMIN`/`staff`/`superuser`.
 
+### Prefijos globales
+- Catálogo: `/api/catalog/`
+- Cuentas: `/api/auth/`
+- Ventas: `/api/sales/`
+
+### Ejemplos curl
+1) Obtener token JWT
+```bash
+curl -X POST http://localhost:8000/api/auth/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+```
+
+2) Crear zona (requiere token)
+```bash
+TOKEN=eyJ... # reemplazar por tu token
+curl -X POST http://localhost:8000/api/catalog/zones/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Zona Norte", "is_active": true}'
+```
+
+3) Listar tipos de sorteo
+```bash
+curl http://localhost:8000/api/catalog/draw-types/
+```
+
+4) Crear horario de sorteo (upsert por zona+tipo)
+```bash
+curl -X POST http://localhost:8000/api/catalog/draw-schedules/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"zone": 1, "draw_type": 1, "cutoff_time": "18:00:00", "is_active": true}'
+```
+
+5) Establecer límite de número
+```bash
+curl -X POST http://localhost:8000/api/catalog/number-limits/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"zone": 1, "draw_type": 1, "number": "12", "max_pieces": 100}'
+```
+
+### Ejemplos de actualización y borrado (PATCH/DELETE)
+1) Actualizar zona
+```bash
+curl -X PATCH http://localhost:8000/api/catalog/zones/1/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Zona Norte Actualizada", "is_active": true}'
+```
+
+2) Borrar tipo de sorteo
+```bash
+curl -X DELETE http://localhost:8000/api/catalog/draw-types/1/ \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+3) Actualizar límite de número
+```bash
+curl -X PATCH http://localhost:8000/api/catalog/number-limits/1/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"max_pieces": 150}'
+```
+
+4) Borrar horario de sorteo
+```bash
+curl -X DELETE http://localhost:8000/api/catalog/draw-schedules/1/ \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Diagrama de flujo (alto nivel)
+```mermaid
+graph TD
+  A["Obtener JWT (ADMIN)"] --> B["Gestionar catálogos"]
+  B --> B1["Zones"]
+  B --> B2["Draw Types"]
+  B --> B3["Draw Schedules"]
+  B --> B4["Number Limits"]
+  A2["Obtener JWT (SELLER/SUPERVISOR)"] --> C["Emitir ticket (sales)"]
+  C --> D["Validaciones: límites y horarios"]
+  D --> E["Guardado y respuesta"]
+  E --> F["Reportes (opcional)"]
+```
+
+## 🧾 Ventas (sales)
+Prefijo: `/api/sales/`
+
+### Crear ticket
+```bash
+curl -X POST http://localhost:8000/api/sales/tickets/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "zone": 1,
+    "draw_type": 1,
+    "items": [
+      {"number": "12", "pieces": 3},
+      {"number": "34", "pieces": 2}
+    ]
+  }'
+```
+
+Respuestas esperadas:
+- 201 Created con `{ id, total_pieces, ... }`
+- 400 Bad Request si:
+  - No hay `draw-schedule` activo para la zona/sorteo
+  - Se excede el tope acumulado de `number-limits`
+  - `items` vacío o con valores inválidos (número no 00-99, piezas <= 0)
+
+### Reporte resumen
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/summary/?group_by=zone"
+```
+
+Parámetros soportados:
+- `group_by`: `zone` | `draw_type` | `user`
+- Filtros: `start`, `end`, `zones`, `draws`, `users`, `daily`, `page`, `page_size`
+
+#### Ejemplos de filtros combinados
+1) Por zona + rango de fechas + múltiples zonas + desglose diario
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/summary/?group_by=zone&start=2024-01-01&end=2024-01-31&zones=1,2&daily=1"
+```
+
+2) Por tipo de sorteo + filtro por usuario + paginación
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/summary/?group_by=draw_type&users=7&page=2&page_size=5"
+```
+
+3) Por usuario + filtros de zona y sorteo específicos
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/summary/?group_by=user&zones=1&draws=2,3"
+```
+
+4) Combinado completo (fechas + zona + sorteo + usuario)
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/summary/?group_by=zone&start=2024-06-01&end=2024-06-30&zones=1&draws=3&users=10"
+```
+
+### Exportación
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=csv&group_by=zone"
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=excel&group_by=zone"
+```
+
+#### Exportación con filtros combinados
+1) CSV por zona + fechas específicas
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=csv&group_by=zone&start=2024-01-01&end=2024-01-31"
+```
+
+2) Excel por tipo de sorteo + filtro de zona
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=excel&group_by=draw_type&zones=1,2"
+```
+
+3) CSV por usuario + filtros múltiples
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=csv&group_by=user&zones=1&draws=2&start=2024-06-01"
+```
+
+4) Excel con desglose diario
+```bash
+curl "http://localhost:8000/api/sales/tickets/reports/export/?format=excel&group_by=zone&daily=1&start=2024-06-01&end=2024-06-30"
+```
+
+### PDF del ticket
+```bash
+curl -L "http://localhost:8000/api/sales/tickets/123/pdf/" -o ticket-123.pdf
+curl "http://localhost:8000/api/sales/tickets/123/preview/"
+```
+
 ## 🧪 Testing
 Suite que valida modelos, serializers, viewsets, permisos y flujos de integración.
 
