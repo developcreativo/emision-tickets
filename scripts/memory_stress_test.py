@@ -6,9 +6,9 @@ Mide el uso de memoria bajo diferentes cargas de trabajo
 
 import gc
 import os
+import queue
 import sys
 import threading
-import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -18,7 +18,6 @@ import psutil
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import django
-from django.db import connection
 
 # Configurar Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
