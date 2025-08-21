@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from core.monitoring import metrics_view
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("routes.api")),
@@ -11,4 +13,7 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    # Endpoints de monitoreo
+    path("metrics/", metrics_view, name="prometheus-metrics"),
+    path("health/", include("core.health")),
 ]

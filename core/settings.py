@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rest_framework_simplejwt",
     "corsheaders",
+    "core",
     "accounts",
     "catalog",
     "sales",
@@ -30,10 +31,15 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "core.middleware.RenderTemplateResponseMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.audit.AuditMiddleware",
+    "core.rate_limiting.RateLimitMiddleware",
+    "core.monitoring.MonitoringMiddleware",
+    "core.monitoring.DatabaseMonitoringMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -134,3 +140,98 @@ CACHES = {
 # Cache settings for reports
 REPORTS_CACHE_TIMEOUT = 600  # 10 minutos para reportes
 DAILY_REPORTS_CACHE_TIMEOUT = 3600  # 1 hora para reportes diarios
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': (
+                '{levelname} {asctime} {module} {process:d} {thread:d} '
+                '{message}'
+            ),
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'audit': {
+            'format': 'AUDIT: {asctime} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'audit.log',
+            'formatter': 'audit',
+        },
+        'monitoring_file': {
+            'class': 'logging.FileHandler',
+            'filename': (
+                BASE_DIR / 'logs' / 'monitoring.log'
+            ),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['audit_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'monitoring': {
+            'handlers': ['monitoring_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
+
+# Rate Limiting Configuration
+RATE_LIMITING = {
+    'DEFAULT': {
+        'max_requests': 100,
+        'window_seconds': 3600,
+    },
+    'AUTH': {
+        'max_requests': 5,
+        'window_seconds': 300,
+    },
+    'REPORTS': {
+        'max_requests': 20,
+        'window_seconds': 3600,
+    },
+    'API': {
+        'max_requests': 1000,
+        'window_seconds': 3600,
+    },
+}
+
+# Monitoring Configuration
+MONITORING = {
+    'ENABLED': True,
+    'METRICS_ENDPOINT': '/metrics',
+    'HEALTH_CHECK_ENDPOINT': '/health',
+    'PROMETHEUS_ENABLED': True,
+}
