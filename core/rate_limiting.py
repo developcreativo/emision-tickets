@@ -2,9 +2,8 @@ import time
 from typing import Dict, Optional, Tuple
 
 from django.core.cache import cache
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from rest_framework import status
-from rest_framework.response import Response
 
 
 class RateLimiter:
@@ -116,7 +115,7 @@ class RateLimitMiddleware:
             is_allowed, info = limiter.is_allowed(identifier)
             
             if not is_allowed:
-                response = Response(
+                response = JsonResponse(
                     {
                         'error': 'Rate limit exceeded',
                         'message': 'Has excedido el límite de peticiones',
@@ -201,7 +200,7 @@ def rate_limit(
             is_allowed, info = limiter.is_allowed(identifier)
             
             if not is_allowed:
-                return Response(
+                return JsonResponse(
                     {
                         'error': 'Rate limit exceeded',
                         'message': 'Has excedido el límite de peticiones',
