@@ -1,6 +1,7 @@
 import time
 from typing import Dict, Optional, Tuple
 
+from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
 from rest_framework import status
@@ -106,6 +107,10 @@ class RateLimitMiddleware:
         }
     
     def __call__(self, request):
+        # Global disable or whitelists
+        rl_settings = getattr(settings, 'RATE_LIMITING', {})
+        if not rl_settings.get('ENABLED', True) or self._is_whitelisted(request, rl_settings):
+            return self.get_response(request)
         # Aplicar rate limiting basado en el tipo de endpoint
         limiter_key = self._get_limiter_key(request)
         identifier = self._get_identifier(request)
@@ -139,6 +144,18 @@ class RateLimitMiddleware:
                 response[key] = value
         
         return response
+
+    def _is_whitelisted(self, request: HttpRequest, rl_settings: dict) -> bool:
+        # IP whitelist
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        ip = xff.split(',')[0] if xff else request.META.get('REMOTE_ADDR')
+        if ip and ip in set(rl_settings.get('WHITELIST_IPS', [])):
+            return True
+        # Host whitelist
+        host = request.get_host().split(':')[0]
+        if host and host in set(rl_settings.get('WHITELIST_HOSTS', [])):
+            return True
+        return False
     
     def _get_limiter_key(self, request: HttpRequest) -> Optional[str]:
         """Determina qué rate limiter usar basado en la petición"""
@@ -178,6 +195,9 @@ def rate_limit(
     """
     def decorator(view_func):
         def wrapper(request, *args, **kwargs):
+            rl_settings = getattr(settings, 'RATE_LIMITING', {})
+            if not rl_settings.get('ENABLED', True):
+                return view_func(request, *args, **kwargs)
             # Crear rate limiter personalizado
             limiter = RateLimiter(
                 key_prefix=key_prefix,
