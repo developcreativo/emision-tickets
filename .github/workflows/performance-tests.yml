@@ -23,7 +23,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d test_db"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -100,7 +100,7 @@ jobs:
       run: |
         echo "🔍 Waiting for PostgreSQL to be ready..."
         for i in {1..60}; do
-          if pg_isready -h postgres -p 5432 -U postgres -d test_db; then
+          if pg_isready -h postgres -p 5432 -U postgres; then
             echo "✅ PostgreSQL is ready!"
             break
           fi
@@ -116,6 +116,10 @@ jobs:
           fi
         done
         
+        # Create the database if it doesn't exist
+        echo "🔍 Creating database if it doesn't exist..."
+        PGPASSWORD=postgres psql -h postgres -U postgres -c "CREATE DATABASE test_db;" 2>/dev/null || echo "Database already exists or creation failed"
+        
         # Additional verification
         echo "🔍 Verifying database connection..."
         PGPASSWORD=postgres psql -h postgres -U postgres -d test_db -c "SELECT version();" || {
@@ -123,11 +127,6 @@ jobs:
           exit 1
         }
         echo "✅ Database connection verified successfully"
-        
-    - name: Create database if not exists
-      run: |
-        echo "🔍 Ensuring database exists..."
-        PGPASSWORD=postgres psql -h postgres -U postgres -c "CREATE DATABASE test_db;" 2>/dev/null || echo "Database already exists or creation failed"
         
     - name: Verify database connection with Python script
       run: |
