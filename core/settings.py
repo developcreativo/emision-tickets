@@ -113,3 +113,24 @@ SPECTACULAR_SETTINGS = {
         "email": "soporte@example.com",
     },
 }
+
+# Redis Cache Configuration
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
+REDIS_DB = os.getenv('REDIS_DB', '0')
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "tickets_cache",
+        "TIMEOUT": 300,  # 5 minutos por defecto
+    }
+}
+
+# Cache settings for reports
+REPORTS_CACHE_TIMEOUT = 600  # 10 minutos para reportes
+DAILY_REPORTS_CACHE_TIMEOUT = 3600  # 1 hora para reportes diarios

@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from xhtml2pdf import pisa
 
+from .cache_service import ReportCacheService
 from .models import Ticket
 from .serializers import TicketSerializer
 
@@ -163,9 +164,32 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='reports/summary')
     def reports_summary(self, request):
-        payload, error = self._build_summary(request)
-        if error:
-            return error
+        # Obtener parámetros de la request
+        start_date = request.query_params.get('start')
+        end_date = request.query_params.get('end')
+        zone = request.query_params.get('zone')
+        draw_type = request.query_params.get('draw_type')
+        user = request.query_params.get('user')
+        group_by = request.query_params.get('group_by', 'zone')
+        page = max(1, int(request.query_params.get('page', '1')))
+        page_size = min(500, max(1, int(request.query_params.get('page_size', '50'))))
+        include_daily = request.query_params.get('daily', '0') in {'1', 'true', 'True'}
+        force_refresh = request.query_params.get('refresh', '0') in {'1', 'true', 'True'}
+        
+        # Obtener reporte con cache
+        payload = ReportCacheService.get_summary_report(
+            start_date=start_date,
+            end_date=end_date,
+            zone=zone,
+            draw_type=draw_type,
+            user=user,
+            group_by=group_by,
+            page=page,
+            page_size=page_size,
+            include_daily=include_daily,
+            force_refresh=force_refresh
+        )
+        
         return Response(payload)
 
     @action(detail=False, methods=['get'], url_path='reports/export')
@@ -211,5 +235,17 @@ class TicketViewSet(viewsets.ModelViewSet):
             out['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
             return out
         return Response({'detail': 'Formato no soportado'}, status=400)
+
+    @action(detail=False, methods=['get'], url_path='cache/stats')
+    def cache_stats(self, request):
+        """Obtiene estadísticas del cache de reportes"""
+        stats = ReportCacheService.get_cache_stats()
+        return Response(stats)
+
+    @action(detail=False, methods=['post'], url_path='cache/clear')
+    def clear_cache(self, request):
+        """Limpia el cache de reportes"""
+        result = ReportCacheService.clear_all_reports_cache()
+        return Response(result)
 
 
