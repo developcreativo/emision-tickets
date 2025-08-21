@@ -23,10 +23,11 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd pg_isready -U postgres -d test_db
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
+          --health-start-period 30s
       
       redis:
         image: redis:6-alpine
@@ -67,28 +68,88 @@ jobs:
     
     - name: Set up environment variables
       run: |
-        echo "DATABASE_URL=postgres://postgres:postgres@postgres:5432/test_db" >> $GITHUB_ENV
-        echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+        echo "DB_NAME=test_db" >> $GITHUB_ENV
+        echo "DB_USER=postgres" >> $GITHUB_ENV
+        echo "DB_PASSWORD=postgres" >> $GITHUB_ENV
+        echo "DB_HOST=postgres" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
+        echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+        echo "REDIS_PORT=6379" >> $GITHUB_ENV
+        echo "REDIS_DB=0" >> $GITHUB_ENV
         echo "DJANGO_SETTINGS_MODULE=core.settings" >> $GITHUB_ENV
+        echo "DJANGO_SECRET_KEY=test-secret-key" >> $GITHUB_ENV
+        echo "DEBUG=0" >> $GITHUB_ENV
 
-    - name: Install pg_isready
+    - name: Install PostgreSQL client
       run: |
         sudo apt-get update
         sudo apt-get install -y postgresql-client
 
+    - name: Check PostgreSQL service status
+      run: |
+        echo "⏳ Giving PostgreSQL service time to initialize..."
+        sleep 10
+        echo "🔍 Checking PostgreSQL service status..."
+        docker ps | grep postgres || echo "⚠️ PostgreSQL container not visible yet"
+        echo "🔍 Checking network connectivity..."
+        ping -c 3 postgres || echo "⚠️ Cannot ping postgres host"
+        echo "🔍 Checking port availability..."
+        nc -zv postgres 5432 || echo "⚠️ Port 5432 not accessible yet"
+
     - name: Wait for PostgreSQL to be ready
       run: |
-        for i in {1..30}; do
-          if pg_isready -h postgres -p 5432 -U postgres; then
-            echo "Postgres is ready"
+        echo "🔍 Waiting for PostgreSQL to be ready..."
+        for i in {1..60}; do
+          if pg_isready -h postgres -p 5432 -U postgres -d test_db; then
+            echo "✅ PostgreSQL is ready!"
             break
           fi
-          echo "Waiting for Postgres..."
+          echo "⏳ Waiting for PostgreSQL... (attempt $i/60)"
           sleep 2
+          
+          # Exit with error if we've tried too many times
+          if [ $i -eq 60 ]; then
+            echo "❌ PostgreSQL failed to start after 60 attempts"
+            echo "🔍 Checking PostgreSQL container status..."
+            docker ps | grep postgres || echo "PostgreSQL container not found"
+            exit 1
+          fi
         done
+        
+        # Additional verification
+        echo "🔍 Verifying database connection..."
+        PGPASSWORD=postgres psql -h postgres -U postgres -d test_db -c "SELECT version();" || {
+          echo "❌ Database connection verification failed"
+          exit 1
+        }
+        echo "✅ Database connection verified successfully"
+        
+    - name: Create database if not exists
+      run: |
+        echo "🔍 Ensuring database exists..."
+        PGPASSWORD=postgres psql -h postgres -U postgres -c "CREATE DATABASE test_db;" 2>/dev/null || echo "Database already exists or creation failed"
+        
+    - name: Verify database connection with Python script
+      run: |
+        echo "🔍 Verifying database connection with Python script..."
+        python scripts/wait_for_db.py
+        echo "✅ Python database connection verified"
+        
+    - name: Test Django database connection
+      run: |
+        echo "🔍 Testing Django database connection..."
+        python manage.py check --database default
+        echo "✅ Django database connection verified"
+        
     - name: Run database migrations
       run: |
-        python manage.py migrate
+        echo "🔍 Running database migrations..."
+        echo "📋 Environment variables:"
+        echo "DB_HOST: $DB_HOST"
+        echo "DB_PORT: $DB_PORT"
+        echo "DB_NAME: $DB_NAME"
+        echo "DB_USER: $DB_USER"
+        python manage.py migrate --verbosity=2
     
     - name: Load test data
       run: |
