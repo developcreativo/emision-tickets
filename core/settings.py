@@ -210,7 +210,7 @@ LOGGING = {
 
 # Rate Limiting Configuration
 RATE_LIMITING = {
-    'ENABLED': False,  # Desactivar rate limiting temporalmente
+    'ENABLED': True,  # Activar rate limiting
     'WHITELIST_IPS': ["127.0.0.1", "10.0.0.5"],  # e.g. ["127.0.0.1", "10.0.0.5"]
     'WHITELIST_HOSTS': [],  # e.g. ["mi-dominio.com"]
     'DEFAULT': {

@@ -10,6 +10,7 @@ Plataforma para gestionar catálogos (zonas, tipos de sorteo, horarios y límite
 - Migraciones
 - API
 - Testing
+- Performance Testing
 - Calidad de Código
 - CI/CD
 - Troubleshooting
@@ -18,6 +19,8 @@ Plataforma para gestionar catálogos (zonas, tipos de sorteo, horarios y límite
 ## ✅ Requisitos
 - Python 3.12
 - Docker y Docker Compose (opcional, recomendado)
+- Redis (para cache y rate limiting)
+- PostgreSQL (base de datos principal)
 
 ## ⚙️ Instalación
 1. Clona el repositorio y entra al directorio del proyecto.
@@ -65,8 +68,13 @@ python manage.py migrate
   - `draw-types/`
   - `draw-schedules/`
   - `number-limits/`
+  - `tickets/`
+  - `reports/`
 - Autenticación JWT (SimpleJWT).
 - Permisos: escritura restringida a `ADMIN`/`staff`/`superuser`.
+- **Rate Limiting**: Protección contra abuso de API.
+- **Cache Redis**: Optimización de reportes frecuentes.
+- **Auditoría**: Logs automáticos de todas las acciones.
 
 ### Prefijos globales
 - Catálogo: `/api/catalog/`
@@ -398,7 +406,122 @@ isort accounts catalog sales
 bandit -r accounts catalog sales
 ```
 
+## 🚀 Performance Testing
+
+### Suite Completa de Tests de Rendimiento
+
+El proyecto incluye una suite completa de tests de rendimiento para la **Fase 2**:
+
+#### Tests Disponibles
+
+1. **Database Benchmarks** (`scripts/db_benchmarks.py`)
+   - Queries simples y complejas
+   - Tests de concurrencia de base de datos
+   - Análisis de rendimiento de índices
+   - Reportes detallados con recomendaciones
+
+2. **Memory Stress Tests** (`scripts/memory_stress_test.py`)
+   - Detección de memory leaks
+   - Tests de memoria en queries de base de datos
+   - Tests de concurrencia de memoria
+   - Tests de cache de memoria
+
+3. **Concurrency Tests** (`sales/tests_concurrency.py`)
+   - Creación concurrente de tickets
+   - Generación concurrente de reportes
+   - Operaciones mixtas (lectura/escritura)
+   - Tests de pool de conexiones
+   - Tests de rate limiting
+
+4. **Load Tests** (`locustfile.py`)
+   - Múltiples tipos de usuarios
+   - Escenarios de carga ligera y pesada
+   - Tests de reportes y administración
+
+#### Ejecución de Tests
+
+```bash
+# Ejecutar toda la suite de tests
+python scripts/run_performance_tests.py
+
+# Tests individuales
+python scripts/db_benchmarks.py
+python scripts/memory_stress_test.py
+python manage.py test sales.tests_concurrency --verbosity=2
+locust -f locustfile.py --headless --users 10 --spawn-rate 2 --run-time 60s
+```
+
+#### Ejecución en Docker
+
+```bash
+# Construir y ejecutar tests en contenedor
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml exec backend python scripts/run_performance_tests.py
+```
+
+#### Interpretación de Resultados
+
+**Umbrales Recomendados:**
+- ✅ Queries simples: < 0.1s
+- ✅ Queries complejas: < 1.0s
+- ✅ Reportes: < 5.0s
+- ✅ Memory leak: < 10MB
+- ✅ Success rate: > 95%
+- ✅ Response time: < 2.0s
+- ✅ RPS: > 100
+
+#### CI/CD Integration
+
+Los tests de rendimiento se ejecutan automáticamente:
+- **En Pull Requests**: Para verificar cambios
+- **En Push a main/develop**: Para monitoreo continuo
+- **Diariamente**: Para tendencias de rendimiento
+
+**Artifacts generados:**
+- `performance-reports/`: Reportes JSON y HTML
+- `performance-dashboard/`: Dashboard de métricas
+- Comentarios automáticos en PRs
+
+#### Documentación Completa
+
+Para más detalles, consulta: [`PERFORMANCE_TESTING.md`](./PERFORMANCE_TESTING.md)
+
+### Monitoreo y Métricas
+
+#### Endpoints de Monitoreo
+
+```bash
+# Health check general
+curl http://localhost:8000/api/health/
+
+# Métricas de Prometheus
+curl http://localhost:8000/metrics
+
+# Estadísticas de cache
+curl http://localhost:8000/api/sales/reports/cache/stats/
+
+# Limpiar cache
+curl -X POST http://localhost:8000/api/sales/reports/cache/clear/
+```
+
+#### Métricas Clave
+
+- **Database Performance**: Query execution time, connection pool usage
+- **Memory Usage**: Memory leaks, peak memory usage, garbage collection
+- **API Performance**: Response times, throughput (RPS), error rates
+- **Rate Limiting**: Requests blocked, rate limit headers, IP whitelist effectiveness
+- **Cache Performance**: Hit rate, miss rate, cache size
+
+#### Logs de Auditoría
+
+Los logs de auditoría se guardan en:
+- `logs/audit.log`: Acciones de usuarios y cambios en el sistema
+- `logs/monitoring.log`: Métricas de rendimiento y monitoreo
+- `logs/django.log`: Logs generales de Django
+
 ## 🔄 CI/CD (ejemplo GitHub Actions)
+
+### Tests Unitarios y de Integración
 ```yaml
 name: Tests
 on: [push, pull_request]
@@ -416,6 +539,53 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run tests
         run: python manage.py test -v 2
+```
+
+### Tests de Rendimiento
+```yaml
+name: Performance Tests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Diariamente a las 2 AM UTC
+
+jobs:
+  performance-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:6-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install locust psutil
+      - name: Run performance tests
+        run: python scripts/run_performance_tests.py
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-reports
+          path: performance-reports/
+          retention-days: 30
 ```
 
 ## 🐛 Troubleshooting
@@ -436,6 +606,12 @@ jobs:
   `python manage.py test catalog.tests.ZoneViewSetTests.test_update_zone -v 2`
 - ¿Cómo creo datos mínimos?  
   Usa los endpoints `zones/`, `draw-types/` y luego `draw-schedules/` para horarios.
+- ¿Cómo ejecuto tests de rendimiento?  
+  `python scripts/run_performance_tests.py` para toda la suite o tests individuales.
+- ¿Dónde encuentro los reportes de rendimiento?  
+  En el directorio `performance-reports/` después de ejecutar los tests.
+- ¿Cómo interpreto los resultados de performance?  
+  Consulta los umbrales recomendados en la sección de Performance Testing.
 
 ## 🗺️ Roadmap
 
@@ -447,14 +623,14 @@ jobs:
 - ✅ Tests unitarios y de integración
 - ✅ API REST completa
 
-### Fase 2: Mejoras y Optimizaciones (Q3 2024) 🚧
-- 🔄 Cache Redis para reportes frecuentes
-- 🔄 Validaciones de negocio más robustas
-- 🔄 Sistema de auditoría y logs
-- 🔄 API rate limiting
-- 🔄 Tests de rendimiento y carga
-- 🔄 Documentación de API con Swagger/OpenAPI
-- 🔄 Monitoreo y métricas con Prometheus
+### Fase 2: Mejoras y Optimizaciones (Q3 2024) ✅
+- ✅ Cache Redis para reportes frecuentes
+- ✅ Validaciones de negocio más robustas
+- ✅ Sistema de auditoría y logs
+- ✅ API rate limiting
+- ✅ Tests de rendimiento y carga
+- ✅ Documentación de API con Swagger/OpenAPI
+- ✅ Monitoreo y métricas con Prometheus
 - 🔄 **Frontend Vue.js 3 + Composition API** *(repositorio separado)*
 - 🔄 **Dashboard responsive para administradores** *(repositorio separado)*
 - 🔄 **Interfaz de vendedores para emisión de tickets** *(repositorio separado)*
@@ -483,3 +659,5 @@ jobs:
 - Mantén cobertura ≥80%.
 - Sigue el estilo (black, isort, flake8).
 - Ejecuta la suite completa antes de enviar PR.
+- **Para cambios que afecten rendimiento**: Ejecuta tests de rendimiento y verifica que no degraden el performance.
+- **Para nuevas funcionalidades**: Considera agregar tests de concurrencia si es relevante.
