@@ -118,7 +118,7 @@ jobs:
         echo "- Load Tests: ✅" >> performance-reports/summary.md
     
     - name: Upload performance reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-reports
         path: performance-reports/
