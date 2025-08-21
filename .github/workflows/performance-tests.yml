@@ -95,6 +95,12 @@ jobs:
         ping -c 3 postgres || echo "⚠️ Cannot ping postgres host"
         echo "🔍 Checking port availability..."
         nc -zv postgres 5432 || echo "⚠️ Port 5432 not accessible yet"
+        echo "🔍 Checking localhost connectivity..."
+        nc -zv localhost 5432 || echo "⚠️ Localhost port 5432 not accessible"
+        echo "🔍 Checking Docker network..."
+        docker network ls
+        echo "🔍 Checking container logs..."
+        docker logs $(docker ps -q --filter "ancestor=postgres:13") 2>/dev/null | tail -10 || echo "⚠️ Cannot get container logs"
 
     - name: Wait for PostgreSQL to be ready
       run: |
