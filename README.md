@@ -675,6 +675,228 @@ jobs:
 - ¿Cómo interpreto los resultados de performance?  
   Consulta los umbrales recomendados en la sección de Performance Testing.
 
+## 🚀 Performance Testing
+
+### 📋 Descripción General
+
+La suite de tests de rendimiento cubre:
+
+- ✅ **Cache Redis para reportes frecuentes**
+- ✅ **Validaciones de negocio más robustas**
+- ✅ **Sistema de auditoría y logs**
+- ✅ **API rate limiting**
+- ✅ **Tests de rendimiento y carga**
+
+### 🧪 Tests Implementados
+
+#### 1. Database Benchmarks (`scripts/db_benchmarks.py`)
+Mide el rendimiento de queries complejas y operaciones de base de datos.
+
+**Características:**
+- Queries simples y complejas
+- Tests de concurrencia de base de datos
+- Análisis de índices
+- Reportes de rendimiento
+
+**Ejecución:**
+```bash
+python scripts/db_benchmarks.py
+```
+
+#### 2. Memory Stress Tests (`scripts/memory_stress_test.py`)
+Detecta memory leaks y mide el uso de memoria bajo carga.
+
+**Características:**
+- Detección de memory leaks
+- Tests de memoria en queries
+- Tests de concurrencia de memoria
+- Tests de cache de memoria
+
+**Ejecución:**
+```bash
+python scripts/memory_stress_test.py
+```
+
+#### 3. Concurrency Tests (`sales/tests_concurrency.py`)
+Prueba el comportamiento del sistema bajo carga concurrente.
+
+**Características:**
+- Creación concurrente de tickets
+- Generación concurrente de reportes
+- Operaciones mixtas (lectura/escritura)
+- Tests de pool de conexiones
+- Tests de rate limiting
+
+**Ejecución:**
+```bash
+python manage.py test sales.tests_concurrency --verbosity=2
+```
+
+#### 4. Load Tests (`locustfile.py`)
+Tests de carga usando Locust para simular usuarios reales.
+
+**Características:**
+- Múltiples tipos de usuarios
+- Escenarios de carga ligera y pesada
+- Tests de reportes
+- Tests de administración
+
+**Ejecución:**
+```bash
+# Modo interactivo
+locust -f locustfile.py
+
+# Modo headless
+locust -f locustfile.py --headless --users 10 --spawn-rate 2 --run-time 60s
+```
+
+### 🚀 Ejecución de Tests
+
+#### Ejecución Individual
+```bash
+# 1. Database Benchmarks
+python scripts/db_benchmarks.py
+
+# 2. Memory Stress Tests
+python scripts/memory_stress_test.py
+
+# 3. Concurrency Tests
+python manage.py test sales.tests_concurrency --verbosity=2
+
+# 4. Load Tests
+locust -f locustfile.py --headless --users 10 --spawn-rate 2 --run-time 60s
+```
+
+#### Ejecución Completa
+```bash
+# Ejecutar toda la suite de performance
+python scripts/run_performance_tests.py
+```
+
+### 📊 Interpretación de Resultados
+
+#### Umbrales Recomendados
+- **Response Time**: < 200ms para APIs simples, < 500ms para reportes
+- **Throughput**: > 100 requests/segundo para carga normal
+- **Error Rate**: < 1% en condiciones normales
+- **Memory Usage**: < 512MB para operaciones estándar
+- **Database Queries**: < 50ms para queries simples
+
+#### Reportes Generados
+Los tests generan reportes en el directorio `performance-reports/`:
+- `db_benchmarks_report.html`
+- `memory_stress_report.html`
+- `concurrency_report.html`
+- `load_test_report.html`
+
+### 🔧 CI/CD Integration
+
+Los tests de performance se ejecutan automáticamente en:
+- **Pull Requests**: Tests básicos de rendimiento
+- **Main Branch**: Suite completa de performance
+- **Scheduled**: Tests diarios a las 2 AM UTC
+
+### 🐛 Troubleshooting
+
+#### Problemas Comunes
+1. **Redis no disponible**: Verificar que Redis esté corriendo
+2. **Base de datos lenta**: Verificar índices y configuración
+3. **Memory leaks**: Revisar reportes de memoria
+4. **Rate limiting**: Ajustar configuración de rate limiting
+
+#### Logs de Debug
+```bash
+# Activar logs detallados
+DEBUG=1 python scripts/run_performance_tests.py
+
+# Ver logs de Redis
+docker logs redis
+
+# Ver logs de Django
+docker logs backend
+```
+
+## 🐳 Integración de Node.js en el Backend Django
+
+### 📋 Resumen
+
+Se ha **integrado exitosamente Node.js y npm** en el contenedor del backend Django, permitiendo el desarrollo fullstack desde un solo contenedor.
+
+### ✅ Lo que se ha implementado
+
+#### **1. Dockerfile actualizado**
+- ✅ **Node.js 18.x** instalado
+- ✅ **npm** actualizado a la última versión
+- ✅ **Puertos expuestos**: 8000 (Django) y 3000 (Vue.js)
+- ✅ **Verificación de instalación** en build
+
+#### **2. Scripts de desarrollo**
+- ✅ **`dev.sh`**: Para desarrollo desde el host (WSL2)
+- ✅ **`dev-container.sh`**: Para desarrollo dentro del contenedor
+- ✅ **Funcionalidades completas**: backend, frontend, fullstack, install, build, test
+
+#### **3. Docker Compose para desarrollo**
+- ✅ **`docker-compose.dev.yml`**: Stack completo con Redis
+- ✅ **Volúmenes montados**: frontend en `/frontend`
+- ✅ **Red dedicada**: `tickets-network`
+- ✅ **Servicios**: backend, frontend, db, redis
+
+### 🚀 Verificación de funcionamiento
+
+#### **Backend funcionando** ✅
+```bash
+# El backend responde correctamente
+curl http://localhost:8000/api/catalog/
+# Respuesta: {"detail":"Las credenciales de autenticación no se proveyeron."}
+```
+
+#### **Scripts funcionando** ✅
+```bash
+# Script del contenedor
+./scripts/dev-container.sh help
+# Muestra todas las opciones disponibles
+
+# Script del host (cuando esté disponible)
+./scripts/dev.sh help
+```
+
+### 🔧 Opciones de uso
+
+#### **Desde el Host (WSL2)**
+```bash
+# Desarrollo completo
+./scripts/dev.sh
+
+# Solo backend
+./scripts/dev.sh backend
+
+# Solo frontend
+./scripts/dev.sh frontend
+```
+
+#### **Desde el Contenedor**
+```bash
+# Desarrollo completo
+./scripts/dev-container.sh
+
+# Solo backend
+./scripts/dev-container.sh backend
+
+# Solo frontend (si está montado)
+./scripts/dev-container.sh frontend
+```
+
+#### **Docker Compose**
+```bash
+# Stack completo
+docker-compose -f docker-compose.dev.yml up --build
+
+# Servicios disponibles:
+# - Backend: http://localhost:8000
+# - Frontend: http://localhost:3000
+# - API Docs: http://localhost:8000/api/docs/
+```
+
 ## 🗺️ Roadmap
 
 ### Fase 1: Funcionalidades Core (Q2 2024) ✅
