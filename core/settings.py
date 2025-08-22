@@ -19,10 +19,12 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rest_framework_simplejwt",
     "corsheaders",
+    "channels",
     "core",
     "accounts",
     "catalog",
     "sales",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -237,4 +239,30 @@ MONITORING = {
     'METRICS_ENDPOINT': '/metrics',
     'HEALTH_CHECK_ENDPOINT': '/health',
     'PROMETHEUS_ENABLED': True,
+}
+
+# Channels Configuration (WebSocket)
+ASGI_APPLICATION = "core.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", "localhost"),
+                    int(os.getenv("REDIS_PORT", "6379"))
+                )
+            ],
+        },
+    },
+}
+
+# Notification Configuration
+NOTIFICATIONS = {
+    'ENABLED': True,
+    'DEFAULT_PRIORITY': 'medium',
+    'QUIET_HOURS_ENABLED': True,
+    'WEBSOCKET_ENABLED': True,
+    'BROADCAST_ENABLED': True,
 }
