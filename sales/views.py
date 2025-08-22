@@ -175,6 +175,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         page_size = min(500, max(1, int(request.query_params.get('page_size', '50'))))
         include_daily = request.query_params.get('daily', '0') in {'1', 'true', 'True'}
         force_refresh = request.query_params.get('refresh', '0') in {'1', 'true', 'True'}
+        fmt = request.query_params.get('format', '').lower()
         
         # Obtener reporte con cache
         payload = ReportCacheService.get_summary_report(
@@ -190,13 +191,60 @@ class TicketViewSet(viewsets.ModelViewSet):
             force_refresh=force_refresh
         )
         
+        # Si se solicita exportación, generar archivo
+        if fmt in ['csv', 'xlsx']:
+            try:
+                filename = 'reporte'
+                if fmt == 'csv':
+                    sio = StringIO()
+                    writer = csv.writer(sio)
+                    writer.writerow(['Grupo', 'Total Tickets', 'Total Pedazos'])
+                    for row in payload['summary']:
+                        writer.writerow([row['group'], row['total_tickets'], row['total_pieces']])
+                    writer.writerow([])
+                    writer.writerow(['Totales', payload['totals']['total_tickets'], payload['totals']['total_pieces']])
+                    if payload.get('daily'):
+                        writer.writerow([])
+                        writer.writerow(['Fecha', 'Total Tickets', 'Total Pedazos'])
+                        for row in payload['daily']:
+                            writer.writerow([row['date'], row['total_tickets'], row['total_pieces']])
+                    out = HttpResponse(sio.getvalue(), content_type='text/csv; charset=utf-8')
+                    out['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+                    return out
+                elif fmt == 'xlsx':
+                    wb = Workbook()
+                    ws = wb.active
+                    ws.title = 'Resumen'
+                    ws.append(['Grupo', 'Total Tickets', 'Total Pedazos'])
+                    for row in payload['summary']:
+                        ws.append([row['group'], row['total_tickets'], row['total_pieces']])
+                    ws.append([])
+                    ws.append(['Totales', payload['totals']['total_tickets'], payload['totals']['total_pieces']])
+                    if payload.get('daily'):
+                        ws2 = wb.create_sheet('Diario')
+                        ws2.append(['Fecha', 'Total Tickets', 'Total Pedazos'])
+                        for row in payload['daily']:
+                            ws2.append([row['date'], row['total_tickets'], row['total_pieces']])
+                    bio = BytesIO()
+                    wb.save(bio)
+                    out = HttpResponse(bio.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    out['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+                    return out
+            except Exception as e:
+                print(f"Error en exportación: {e}")
+                return Response({'detail': f'Error generando archivo de exportación: {str(e)}'}, status=500)
+        
         return Response(payload)
 
-    @action(detail=False, methods=['get'], url_path='reports/export')
+    @action(detail=False, methods=['get'], url_path='test-export')
+    def test_export(self, request):
+        print(f"Test export endpoint called with params: {request.query_params}")
+        return Response({"message": "Test export endpoint working", "params": dict(request.query_params)}, status=200)
+    
+    @action(detail=False, methods=['get', 'post'], url_path='reports/export')
     def reports_export(self, request):
-        payload, error = self._build_summary(request)
-        if error:
-            return error
+        print(f"Export endpoint called with params: {request.query_params}")
+        return Response({"message": "Export endpoint working", "params": dict(request.query_params)}, status=200)
         fmt = request.query_params.get('format', 'csv').lower()
         filename = 'reporte'
         if fmt == 'csv':

@@ -30,9 +30,6 @@ urlpatterns = [
     ),
     
     # APIs de la aplicación
-    path("api/", include("accounts.urls")),
-    path("api/", include("catalog.urls")),
-    path("api/", include("sales.urls")),
     path("api/", include("routes.api")),
 ]
 
